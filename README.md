@@ -68,9 +68,9 @@ Setup:
 			"socket" => "/tmp/php.socket",
 			"max-procs" => 1,
 			"bin-environment" => (
-                "PHP_FCGI_CHILDREN" => "8",
-                "PHP_FCGI_MAX_REQUESTS" => "5000",
-                "DEV_MODE" => "DEV"             ),
+			"PHP_FCGI_CHILDREN" => "8",
+			"PHP_FCGI_MAX_REQUESTS" => "5000",
+			"DEV_MODE" => "DEV"             ),
 			"bin-copy-environment" => ("PATH", "SHELL", "USER"),
 			"broken-scriptfilename" => "enable"        )))
 		}
