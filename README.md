@@ -90,7 +90,7 @@ Setup:
 		http://MYIP/ws/?wsdl
 		http://MYIP/ws/?GetTime
 		
-	Look at the other demo to learn th basics....
+	Look at the other demos to learn the basics....
 	ENJOY!!!
 		
 		
