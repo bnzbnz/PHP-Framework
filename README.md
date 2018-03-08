@@ -1,3 +1,13 @@
+PWS Framework is a PHP Web Service Framework that allow for fast Web Service development. 
+
+This is a fastcgi (PHP native) server running in cli mode (php-cli) as a daemon. 
+
+It is able to handle requests and responses using the following formats : REST, SOAP, JSON, XML, PHP and Typed PHP, these formats can be mixed.
+
+It also provides supports for asynchronous requests, credentials and request details.
+
+(PHP Linux Only)
+
 How to Setup :
 
 The following procedure has been validated on Debian Stretch. 
