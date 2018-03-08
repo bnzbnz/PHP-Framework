@@ -1,0 +1,1 @@
+/usr/bin/php demo.php -d=1 -c=demo.conf.php $1
