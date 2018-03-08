@@ -30,7 +30,7 @@ Setup:
 		We are using the default setup (Listen on 127.0.0.1 port 11211)
 		
 	2-PHP cli/cgi :
-		apt-get install php php-cgi php-cli php-soap php-uuid php-geoip php-memcached
+		apt-get install php php-cgi php-cli php-soap php-uuid php-curl php-geoip php-memcached
 		Again the default setup should be fine
 		
 	3-Lighttpd :
