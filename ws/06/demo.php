@@ -69,11 +69,11 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 
 	$Res->DateTime = gmdate("c"); // we return the Date
 	
-	WEBSvc::detailLevelToArray($Req->DetailLevel, $dlarr);
-	$sdl=webSvc::getSubDetailLevel($dlarr, 'UserInfo', 'NONE');
-	$sdl=webSvc::getSubDetailLevel($sdl, 'Info', 'NONE');
-	$dl = webSvc::getDetailLevel($sdl, 'NONE');
-	$lvl=webSvc::detailLeveltoInt($dl);
+	ws_detailLevelToArray($Req->DetailLevel, $dlarr);
+	$sdl=ws_getSubDetailLevel($dlarr, 'UserInfo', 'NONE');
+	$sdl=ws_getSubDetailLevel($sdl, 'Info', 'NONE');
+	$dl = ws_getDetailLevel($sdl, 'NONE');
+	$lvl=ws_detailLeveltoInt($dl);
 	
 	if( $lvl>0 )
 	{

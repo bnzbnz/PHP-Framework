@@ -76,24 +76,24 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 	$Res->DateTime = gmdate("c"); // we return the Date
 	
 	//we get the default DetailLevel for this call (ex DetailLevel=MAX), if not present STD will be used.
-	WEBSvc::detailLevelToArray($Req->DetailLevel, $dlarr);
-	$mdl =  webSvc::getDetailLevel($dlarr, 'STD');
+	ws_detailLevelToArray($Req->DetailLevel, $dlarr);
+	$mdl =  ws_getDetailLevel($dlarr, 'STD');
 
 	// we get the DetailLevel for the property "UserIP". If not present NONE will be used.
-	$sdl=webSvc::getSubDetailLevel($dlarr, 'UserIP', 'NONE');
-	$dl = webSvc::getDetailLevel($sdl, 'NONE');
-	if((webSvc::detailLevelToInt($mdl)==3) || (webSvc::detailLevelToInt($dl)>=2))
+	$sdl=ws_getSubDetailLevel($dlarr, 'UserIP', 'NONE');
+	$dl = ws_getDetailLevel($sdl, 'NONE');
+	if((ws_detailLevelToInt($mdl)==3) || (ws_detailLevelToInt($dl)>=2))
 	{
 		$Res->UserIP = $_SERVER['UserIp']; // The User IP
-		if(!$_SERVER['isPrivateIp'])
+		if(!$_SERVER['IsPrivateIp'])
 			$Res->UserIPCountry = $CArray['UserIpShortCountry']; // The User IP Country Code
 	}
 	
-	$sdl=webSvc::getSubDetailLevel($dlarr, 'DummyArray', 'NONE');
-	$dl = webSvc::getDetailLevel($sdl, 'NONE');
-	if((webSvc::detailLevelToInt($mdl)==3) || (webSvc::detailLevelToInt($dl)>=2))
+	$sdl = ws_getSubDetailLevel($dlarr, 'DummyArray', 'NONE');
+	$dl = ws_getDetailLevel($sdl, 'NONE');
+	if((ws_detailLevelToInt($mdl)==3) || (ws_detailLevelToInt($dl)>=2))
 	{
-		webSvc::getDetailLevelPageInfo($sdl, $offset, $length);
+		ws_getDetailLevelPageInfo($sdl, $offset, $length);
 		if($length+$offset > 9) { $length = 9-$offset; } // Sanity Check
 
 		$Res->DummyArray = new IntArrayContainerType;

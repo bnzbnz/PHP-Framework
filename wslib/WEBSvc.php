@@ -2,6 +2,7 @@
 
 require_once(WS_ABSWSPATHLIB.'MemCachedPools.php');
 require_once(WS_ABSWSPATHLIB.'PHPExt.php');
+require_once(WS_ABSWSPATHLIB.'WSExt.php');
 require_once(WS_ABSWSPATHLIB.'FastCGI.php');
 require_once(WS_ABSWSPATHLIB.'WSManager.php'); 
 require_once(WS_ABSWSPATHLIB.'WSTypes.php'); 
@@ -87,7 +88,7 @@ class WEBSvc
 		
 		$path = issetX($_ENV['WS']['wsdl_store'], '/tmp/');
 		foreach(glob($path.'*-'.$_ENV['DAEMON']['daemonid'].'.wsdl') as $file) { unlink($file); }
-		include_once(WS_ABSWSPATHLIB.'WS.Lang.'.issetX($_ENV['WS']['language'], 'En').'.php');
+		include_once(WS_ABSWSPATHLIB.'WSLang.'.issetX($_ENV['WS']['language'], 'En').'.php');
 		ob_implicit_flush(false);
 		WS_Manager::Init(
 			$_ENV['WS']['classname'],
@@ -187,13 +188,6 @@ class WEBSvc
 		FastCGI::init();				
 	}
 	
-	static public function ws_addasynctask($function, $params = null)
-	{
-		$ctx = array();
-		$ctx['SERVER'] = $_SERVER;
-		$_ENV['WS']['AsyncTask'][] =  array($function, serialize($params), serialize($ctx)); 
-	}
-
 	static public function GenericCall($Req, $isAsync = false, $cparams = null, $CredentialArray = null)
 	{
 		$starttime = microtime(true);
@@ -221,7 +215,7 @@ class WEBSvc
 			}
 			if (!$isAsync && (!$Validate || ($finfo['AclLevel']>$AclLevel)))
 			{
-				self::SetError($Res, new WS_Exception(211, '', '', ''));
+				ws_setError($Res, new WS_Exception(211, '', '', ''));
 			}
 			else
 			{
@@ -236,7 +230,7 @@ class WEBSvc
 					{
 						if(empty($_ENV['WS']['async_memcachedLB']) || !issetX($_ENV['WS']['async_request'], false))
 						{
-							self::SetError($Res, new WS_Exception(210, '', '', ''));
+							ws_setError($Res, new WS_Exception(210, '', '', ''));
 						}
 						else
 						{
@@ -247,9 +241,9 @@ class WEBSvc
 								$Res -> RequestId = issetX($Req -> RequestId, null);
 								$Processing = $_ENV['WS']['async_memcachedLB']->Get("ws.async::processing::".$Req -> Options -> AsyncRequestId);	
 								if ($Processing == null)
-									self::setError($Res, new WS_Exception(201, $Req -> Options -> AsyncRequestId, '', ''));
+									ws_setError($Res, new WS_Exception(201, $Req -> Options -> AsyncRequestId, '', ''));
 								else
-									self::setError($Res, new WS_Exception(202, $Req -> Options -> AsyncRequestId, '', ''));
+									ws_setError($Res, new WS_Exception(202, $Req -> Options -> AsyncRequestId, '', ''));
 							}	
 						}
 						$tmp = microtime(true)- $starttime;
@@ -260,7 +254,7 @@ class WEBSvc
 					{
 						if(empty($_ENV['WS']['async_memcachedLB']) || !issetX($_ENV['WS']['async_request'], false))
 						{
-							self::setError($Res, new WS_Exception(210, '', '', ''));	
+							ws_setError($Res, new WS_Exception(210, '', '', ''));	
 							return $Res;
 						}
 						else
@@ -268,7 +262,7 @@ class WEBSvc
 							$Res -> AsyncRequestId = strtoupper(md5(uniqid(rand(), true)));
 							$Req -> Options -> AsyncRequestId = $Res -> AsyncRequestId;
 							$_ENV['WS']['async_memcachedLB']->Set("ws.async::processing::".$Res -> AsyncRequestId, 'true', 0, 30*60);
-							self::ws_addasynctask("WebSVC::GenericCall", array($Req, true, $cparams, $CredentialArray['AclLevel'], $CredentialArray));
+							ws_addAsyncTask("WebSVC::GenericCall", array($Req, true, $cparams, $CredentialArray['AclLevel'], $CredentialArray));
 						}					
 						$tmp = microtime(true) - $starttime;
 						$Res->Duration = (int)round($tmp * 1000); 
@@ -288,7 +282,7 @@ class WEBSvc
 		}
 		catch(Exception $Ex)
 		{			
-			self::setError($Res, $Ex);
+			ws_setError($Res, $Ex);
 		}
 
 		if ($isAsync) 
@@ -302,233 +296,12 @@ class WEBSvc
 			return $Res;
 		}
 	}
-	
-	static public function setError(&$Res, $Ex)
-	{
-		$Res 			= issetX($Res, new ResponseType);
-		$Res -> Errors 	= issetX($Res -> Errors, new ResponseErrorArrayContainerType);
-		$Res->Ack = 1;
 
-		if($Ex instanceof WS_Exception)
-		{
-			if($Res -> Errors -> Items == null) { $Res -> Errors -> Items = new ResponseErrorArrayType; }
-			foreach($Ex->Errors as $err)
-			{
-				$error 	= new ResponseErrorType();
-				$error 	-> Code = $err[0];
-				$error 	-> Message = Language::get($err[0], array($err[1], $err[2], $err[3]) );
-				$error 	-> Key   = $err[1];
-				$error 	-> Info1 = $err[2];
-				$error 	-> Info2 = $err[3];
-				$Res 	-> Errors -> Items -> Error[] = $error;
-			}		 
-		} 
-			else 
-		{
-				$error 	= new ResponseErrorType();
-				$error 	-> Code = $Ex->getCode();
-				$error 	-> Message = "::". $Ex->getMessage();
-				$Res 	-> Errors -> Items = new ResponseErrorArrayType;
-				$Res 	-> Errors -> Items ->Error[] = $error;			
-		}
-		$Res -> Errors -> Count = Count(issetX($Res -> Errors -> Items -> Error, null));
-		return $Res;
-	}
-
-	static public function getDetailLevel(&$dlarr, $defaultLevel = "MIN" )
-	{
-		if(isset($dlarr['%_detaillevel_%'])) { return $dlarr['%_detaillevel_%']; }
-		return $defaultLevel;
-	}
-	
-	static public function  detailLevelToArray($dlstr, &$dlarr)
-	{
-		$dlval = array('MAX','MIN','STD','NONE','CNT');
-		foreach(explode(',', $dlstr) as $dl)
-		{
-			$dlv = explode(':', $dl);
-			if(count($dlv) == 2)
-			{
-				$pdl = explode('.', $dlv[0]);
-				$pa = &$dlarr;
-				foreach($pdl as $sdl)
-					$pa = &$pa[trim($sdl)];
-				$ldl = explode(';', $dlv[1]);
-				if (in_array(strtoupper(trim($ldl[0])), $dlval))
-					$pa['%_detaillevel_%'] = strtoupper(trim($ldl[0]));
-				if ( (count($ldl) == 3) && (is_numeric(trim($ldl[1]))) && (is_numeric(trim($ldl[2]))))
-				{
-					$pa['%_limitfrom_%'] = strtoupper(trim($ldl[1]));
-					$pa['%_limitcount_%'] = strtoupper(trim($ldl[2]));
-				}	
-			}
-				else
-			{
-				if (in_array(strtoupper(trim($dl)), $dlval))
-					$dlarr['%_detaillevel_%'] = strtoupper(trim($dl));		
-			}
-		}		
-	}
-	
-	static public function &getSubDetailLevel(&$dlarr, $filter, $currentLevel)
-	{
-		if(!isset($dlarr[$filter]['%_detaillevel_%'])) 
-			$dlarr[$filter]['%_detaillevel_%'] = $currentLevel;
-		return $dlarr[$filter];
-	}
-
-	static public function detailLeveltoInt($dl)
-	{
-		switch ($dl) 
-		{
-			case "MIN":
-				return 1;
-			break;
-			case "STD":
-				return 2;
-			break;
-				case "MAX":
-			return 3;
-			break;
-				default:
-			return 0;
-		}
-	}	
-	
-
-	static public function detailLevelDec($dl)
-	{
-		if($dl=="MAX") { return "STD"; }
-		elseif($dl=="STD") { return "MIN"; }
-		return "NONE";
-	}
-	
-	static public function clearDetailLevelPageInfo(&$dlarr)
-	{
-		$dlarr['%_limitfrom_%'] = null;
-		$dlarr['%_limitcount_%'] = null;
-	}
-	
-	static public function getDetailLevelPageInfo(&$dlarr, &$offset, &$length)
-	{
-		$len = 0;
-		$start = 0;
-		
-		if (isset($dlarr['%_limitfrom_%']))
-			$start = $dlarr['%_limitfrom_%'];
-		
-		if (isset($dlarr['%_limitcount_%']))
-			$len = $dlarr['%_limitcount_%'];
-		
-		if( $start < 0) { $start = 0; } 
-		if( $len < 0) { $len = 0; } 
-
-		if(( $start == 0) && ( $len == 0)) 
-			return false;
-		
-		$offset = $start;
-		$length = $len;
-		
-		return true;
-	}
-	
 	static public function run($className, $appName)
 	{
 		$_ENV['WS']['classname'] = $className;
 		FastCGI::run('WebSVC', $appName);
 	}
 }
-
-//////////////////////////////////////////
-//										//
-// Helpers
-//										//
-//////////////////////////////////////////
-
-function ws_get($obj, $default)
-{	
-	if (!(isset($obj))) { return $default; } else { return $obj; }
-}
-	
-function ws_getprop($req, $name, $defaultvalue)
-{
-	if (!isset($req->{$name})) { return $defaultvalue; };
-	return $req->{$name};	
-}
-
-function ws_raise_exception($code, $key, $info1, $info2)
-{
-	$Ex = new WS_Exception;
-	$Ex->addError( $code, $key, $info1, $info2 );			
-	throw $Ex; 
-}
-
-function ws_new($obj, $prop)
-{
-	if ($obj -> $prop == null)
-	{
-		$pinfo = $obj -> WSPropertiesInfo();
-		$ptype = $pinfo[$prop];
-		$obj -> $prop = new $ptype['type'];
-	}
-}
-
-function ws_dbrowcompareupdate($newval, $curval, &$row)
-{
-	if(!isset($newval)) { return false; } 
-	$row = $newval;
-	return true;
-}
-
-function ws_clearpageinfo(&$dlarr)
-{
-	$dlarr['%_limitfrom_%'] = null;
-	$dlarr['%_limitcount_%'] = null;
-}
-
-function ws_getpageinfo(&$dlarr, &$offset, &$length)
-{
-	$len = 0;
-	$start = 0;
-	
-	if (isset($dlarr['%_limitfrom_%']))
-		$start = $dlarr['%_limitfrom_%'];
-	
-	if (isset($dlarr['%_limitcount_%']))
-		$len = $dlarr['%_limitcount_%'];
-	
-	if( $start < 0) { $start = 0; } 
-	if( $len < 0) { $len = 0; } 
-
-	if(( $start == 0) && ( $len == 0)) 
-		return false;
-	
-	$offset = $start;
-	$length = $len;
-	
-	return true;
-}
-
-function ws_paginatearray($container, &$idarr, &$dlarr, $maxpubliccount=5)
-{
-	
-	$len = 0;
-	$start = 0;
-	$total = count($idarr);
-	
-	if(!ws_getpageinfo($dlarr, $start, $len))
-		return false;
-		
-	$container -> LimitCount = $len;
-	$container -> LimitFrom = $start;	
-	$container -> TotalCount = $total;
-	
-	if( $len == 0 )
-		$idarr = array_slice($idarr, $start);
-	else			
-		$idarr = array_slice($idarr, $start, $len);			
-	return true;		
-}
-
 
 ?>

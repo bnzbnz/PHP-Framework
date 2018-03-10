@@ -1,7 +1,7 @@
 <?php
 
 
-class Language
+class WSLang
 {
 	  
   static public function get($id, $params = null)

@@ -79,9 +79,9 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 	syslogx(' DetailLevel : '.$Req->DetailLevel);
 	
 	$dlarr = array();
-	WEBSvc::detailLevelToArray($Req->DetailLevel, $dlarr);
-	$dl =  webSvc::getDetailLevel($dlarr, 'STD');
-	switch( webSvc::detailLeveltoInt($dl) ) {
+	ws_detailLevelToArray($Req->DetailLevel, $dlarr);
+	$dl = ws_getDetailLevel($dlarr, 'STD');
+	switch( ws_detailLeveltoInt($dl) ) {
 		case 1 : // MIN
 			$Res->IsMIN = true;
 		break;

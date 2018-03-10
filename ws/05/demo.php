@@ -79,13 +79,13 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 	
 	$Res->DateTime = gmdate("c"); // we return the Date
 	
-	WEBSvc::detailLevelToArray($Req->DetailLevel, $dlarr);
-	$sdl=webSvc::getSubDetailLevel($dlarr, 'DemoArray', 'NONE');
-	$dl = webSvc::getDetailLevel($sdl, 'NONE');
-	if( webSvc::detailLeveltoInt($dl)>0 )
+	ws_detailLevelToArray($Req->DetailLevel, $dlarr);
+	$sdl=ws_getSubDetailLevel($dlarr, 'DemoArray', 'NONE');
+	$dl = ws_getDetailLevel($sdl, 'NONE');
+	if( ws_detailLeveltoInt($dl)>0 )
 	{
 		//Integer Array, 8 Values 1-8
-		webSvc::getDetailLevelPageInfo($sdl, $offset, $length);
+		ws_getDetailLevelPageInfo($sdl, $offset, $length);
 		// Sanity Check :
 		if($length==0) { $length=8; }
 		if($offset<1) { $offset=1; }

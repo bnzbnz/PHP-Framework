@@ -1,5 +1,5 @@
 <?php
-// PHP language extention
+// PHP extensions
 
 function issetX(&$var, $defaultvalue) { if (!isset($var)) { return $defaultvalue; } return $var; }
 
