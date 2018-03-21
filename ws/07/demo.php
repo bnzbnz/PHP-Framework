@@ -68,7 +68,7 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($FInfo, $CArray, $Req, $Res)
+function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
 {   
     // a very simple web service...
 
@@ -86,7 +86,7 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 	{
 		$Res->UserIP = $_SERVER['UserIp']; // The User IP
 		if(!$_SERVER['IsPrivateIp'])
-			$Res->UserIPCountry = $CArray['UserIpShortCountry']; // The User IP Country Code
+			$Res->UserIPCountry = $_SERVER['UserIpShortCountry']; // The User IP Country Code
 	}
 	
 	$sdl = ws_getSubDetailLevel($dlarr, 'DummyArray', 'NONE');

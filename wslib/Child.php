@@ -3,7 +3,7 @@
 // childOnParentStarted
 // childOnParentExiting
 // childOnRun
-// childOnBackgroundRun
+// childBkgOnRun
 
 require_once(WS_ABSWSPATHLIB.'Daemon.php'); 
 
@@ -48,11 +48,12 @@ class Child
 			// When a child process stops or terminates, SIGCHLD is sent to the parent process. The default response to the signal is to ignore // it. The signal can be caught and the exit status from the child process can be obtained by immediately calling wait(2) and 		// wait 3(3C).
 			while(( $pid= pcntl_wait ( $signo, WNOHANG ) ) > 0 )
 			{	
-				if(issetX($_ENV['PARENT']['BKGCHILDID'], false) == $pid )
-				{
-					unset($_ENV['PARENT']['BKGCHILDID']);
-					if(!$_ENV['PARENT']['quit']) self::forkBkgChild($quit, false);
-				}					
+				if(issetX($_ENV['PARENT']['bkgchild'], false))
+					if(issetX($_ENV['PARENT']['BKGCHILDID'], false) == $pid )
+					{
+						unset($_ENV['PARENT']['BKGCHILDID']);
+						if(!$_ENV['PARENT']['quit']) self::forkBkgChild($quit, false);
+					}					
 				if(count($_ENV['PARENT']['CHILDLIST']['ids'])>0)
 					foreach($_ENV['PARENT']['CHILDLIST']['ids']  as $key => $cpid)
 						if($pid == $cpid) 
@@ -67,29 +68,33 @@ class Child
 	
 	static private function forkBkgChild(&$quit, $initialfork=false)
 	{
-		$quit = &$_ENV['PARENT']['quit'];
-		$child = pcntl_fork();
-		if($child == 0) 
+		unset($_ENV['PARENT']['BKGCHILDID']);
+		if (issetX($_ENV['PARENT']['bkgchild'], false))
 		{
-			set_time_limit(0);
-			pcntl_signal(SIGTERM, "_bkg_child_sig_handler");
-			pcntl_signal(SIGHUP,  "_bkg_child_sig_handler");
-			pcntl_signal(SIGCHLD, "_bkg_child_sig_handler");
-			pcntl_signal(SIGUSR1, "_bkg_child_sig_handler");
-			pcntl_signal(SIGINT,  "_bkg_child_sig_handler");
-			while(!$quit)
+			$quit = &$_ENV['PARENT']['quit'];
+			$child = pcntl_fork();
+			if($child == 0) 
 			{
-				try
+				set_time_limit(0);
+				pcntl_signal(SIGTERM, "_bkg_child_sig_handler");
+				pcntl_signal(SIGHUP,  "_bkg_child_sig_handler");
+				pcntl_signal(SIGCHLD, "_bkg_child_sig_handler");
+				pcntl_signal(SIGUSR1, "_bkg_child_sig_handler");
+				pcntl_signal(SIGINT,  "_bkg_child_sig_handler");
+				while(!$quit)
 				{
-					declare(ticks=1);
-					$ms=call_user_funcX($_ENV['PARENT']['childclassname'].'::childOnBackgroundRun', array(&$quit, $initialfork), 250);
-					msleepX($ms);
-					$initialfork = false;
-				} catch(Exception $ex) {}
+					try
+					{
+						declare(ticks=1);
+						$ms=call_user_funcX($_ENV['PARENT']['childclassname'].'::childBkgOnRun', array(&$quit, $initialfork), 250);
+						msleepX($ms);
+						$initialfork = false;
+					} catch(Exception $ex) {}
+				}
+				exit(0);	
 			}
-			exit(0);	
+			$_ENV['PARENT']['BKGCHILDID'] = $child;
 		}
-		$_ENV['PARENT']['BKGCHILDID'] = $child;
 	}
 	
 	static private function forkChild()

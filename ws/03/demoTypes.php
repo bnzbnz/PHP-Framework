@@ -51,5 +51,33 @@ class GetTimeResponseType extends ResponseType
 	} 	
 }
 
+class GetTimeRequestSPType extends GetTimeRequestType
+{
+	public static function WS_Properties()
+	{
+		return array();
+	}
+}
+class GetTimeRequestPVType extends GetTimeRequestType
+{
+	public static function WS_Properties()
+	{
+		return array();
+	}
+}
+class GetTimeResponseSPType extends GetTimeResponseType
+{
+	public static function WS_Properties()
+	{
+		return array();
+	}
+}
+class GetTimeResponsePVType extends GetTimeResponseType
+{
+	public static function WS_Properties()
+	{
+		return array();
+	}
+}
 
 ?>

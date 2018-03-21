@@ -197,12 +197,12 @@ class FastCGI
 			$_ENV['FASTCGI']['socket'] = null;
 			return false;
 		}
-		if (@socket_bind($_ENV['FASTCGI']['socket'], $_ENV['FASTCGI']['host'], $_ENV['FASTCGI']['port']) === false) 
+		if (@socket_bind($_ENV['FASTCGI']['socket'], issetX($_ENV['FASTCGI']['host'], 0), issetX($_ENV['FASTCGI']['port'], 10000)) === false) 
 		{
 			echo "main socket_bind() failed : ".socket_strerror(socket_last_error($_ENV['FASTCGI']['socket'])).PHP_EOL;
 			return false;
 		}
-		if ((@socket_listen ($_ENV['FASTCGI']['socket'], $_ENV['FASTCGI']['backlog'])) === false) 
+		if ((@socket_listen ($_ENV['FASTCGI']['socket'], issetX($_ENV['FASTCGI']['backlog'], 48))) === false) 
 		{
 			echo  " main socket_listen() failed : ".socket_strerror(socket_last_error($_ENV['FASTCGI']['socket'])).PHP_EOL;
 			return false;
@@ -222,10 +222,10 @@ class FastCGI
 		return call_user_funcX($_ENV['FASTCGI']['classname'].'::childOnParentExiting', array(&$parent), true);
 	}
 	
-	static public function childOnBackgroundRun(&$quit, $initialfork)
+	static public function childBkgOnRun(&$quit, $initialfork)
 	{
 		declare(ticks=1);
-		return call_user_funcX($_ENV['FASTCGI']['classname'].'::childOnBackgroundRun', array(&$quit, $initialfork), 250);
+		return call_user_funcX($_ENV['FASTCGI']['classname'].'::childBkgOnRun', array(&$quit, $initialfork), 1000);
 	}
 	
 	static public function childOnRun()
@@ -234,7 +234,7 @@ class FastCGI
 		$quit = &$_ENV['PARENT']['quit'];
 		$fcgisock = $_ENV['FASTCGI']['socket'];
 		$maxreq	= issetX($_ENV['FASTCGI']['max_request'], 1000);
-		$maxmem	= issetX($_ENV['FASTCGI']['max_memory'], 1000);
+		$maxmem	= issetX($_ENV['FASTCGI']['max_memory'], 16);
 		$reqcnt	= 0;
 		$idletmg = 0;
 		call_user_funcX($_ENV['FASTCGI']['classname'].'::fastCGIOnChildStarted', array(&$_ENV['FASTCGI']), true); 
@@ -248,7 +248,7 @@ class FastCGI
 				$write = null;
 				$except = null;
 				set_error_handler(function($code, $string, $file, $line){ return true; });
-				if( ($ready = @socket_select($read, $write, $except, 0, 1000 * 1000)) === false ) { $quit=true; }
+				if( ($ready = @socket_select($read, $write, $except, 0, issetX($_ENV['FASTCGI']['waitforms'], 1000) * 1000)) === false ) { $quit=true; }
 				if($ready > 0)
 				{					
 					$socket = @socket_accept($fcgisock);

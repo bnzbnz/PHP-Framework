@@ -23,16 +23,16 @@
 	// Fast CGI Socket Timeout (ms)
 	$_ENV['FASTCGI']['waitforms']		= 5000;
 	
-	// Where is stored the remporary wsdl
+	// Where is stored the temporary wsdl
 	$_ENV['WS']['wsdl_store']			= '/dev/shm/'; 
 	// If the async. requests can be made
 	$_ENV['WS']['async_request']		= true;
 	// For Async. requests : a memcached array :
-	$_ENV['WS']['async_memcached']	= array(
-		array( 'host' => '127.0.0.1', 'port' => 11211, 'compress'  => true ),
-		array( 'host' => '127.0.0.1', 'port' => 11211, 'compress'  => true)
+	$_ENV['WS']['async_memcached']		= array(
+			array( 'host' => '127.0.0.1', 'port' => 11211, 'compress'  => true ),
+			array( 'host' => '127.0.0.1', 'port' => 11211, 'compress'  => true)
 	);
-	// Which language is used En, Fr...
+	// Which language is used En, Fr... for errors/exception
 	$_ENV['WS']['language']				= 'En';
 	
 	// The following depends of the application : 

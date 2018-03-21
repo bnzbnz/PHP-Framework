@@ -10,6 +10,14 @@ require_once(WS_ABSWSPATHLIB.'WSTypes.php');
 class WEBSvc
 {
 	
+	static public function WSManager_ExistWSDL($Key, &$FileName)
+	{
+		$path = issetX($_ENV['WS']['wsdl_store'], '/tmp/');
+		$md5 = md5($Key);
+		$FileName = $path.$md5.'-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
+		return file_exists($FileName);
+	}
+	
 	static public function WSManager_GetWSDL($Key)
 	{
 		$path = issetX($_ENV['WS']['wsdl_store'], '/tmp/');
@@ -50,35 +58,35 @@ class WEBSvc
 		return false;
 	}
 	
-	static public function WSManager_SetWSDL($Key, &$Wsdl)
+	static public function WSManager_SetWSDL($Key, &$Wsdl, &$FileName)
 	{
 		
 		$path = issetX($_ENV['WS']['wsdl_store'], '/tmp/');
 		$md5 = md5($Key);
-		$fname = $path.$md5.'-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
+		$FileName = $path.$md5.'-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
 		$ftempname = $path.uuidX().'-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
-			if(!file_exists($fname))
-			{
-				$file = fopen ($ftempname, "w");
-				fwrite($file, $Wsdl); 
-				fclose ($file);
-				rename($ftempname, $fname); // atomic
-			}
-			$fname = $path.$md5.'-gzip-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
-			$ftempname = $path.uuidX().'-gzip-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
-			if(!file_exists($fname))
-			{
-				$file = fopen ($ftempname, "a");
-				fwrite($file, gzencode($Wsdl, 6, FORCE_GZIP));
-				fclose ($file);
-				rename($ftempname, $fname); // atomic
-			}
+		if(!file_exists($FileName))
+		{
+			$file = fopen ($ftempname, "w");
+			fwrite($file, $Wsdl); 
+			fclose ($file);
+			rename($ftempname, $FileName); // atomic
+		}
+		$fname = $path.$md5.'-gzip-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
+		$ftempname = $path.uuidX().'-gzip-'.$_ENV['DAEMON']['daemonid'].'.wsdl';
+		if(!file_exists($fname))
+		{
+			$file = fopen ($ftempname, "a");
+			fwrite($file, gzencode($Wsdl, 6, FORCE_GZIP));
+			fclose ($file);
+			rename($ftempname, $fname); // atomic
+		}
 		return true; 
 	}
 	
 	static public function daemonOnParentInitializing(&$startinguserinfo, &$ctxuserinfo)
 	{
-		if(($_ENV['WS']['async_request']) && (isset($_ENV['WS']['async_memcached'])))
+		if(issetX($_ENV['WS']['async_request'], false) && (isset($_ENV['WS']['async_memcached'])))
 		{
 			$tmpArray = array();
 			foreach($_ENV['WS']['async_memcached'] as $srv)
@@ -94,6 +102,7 @@ class WEBSvc
 			$_ENV['WS']['classname'],
 			'urn:apis:components',
 			'WebSVC::WSManager_GetWSDL',
+			'WebSVC::WSManager_ExistWSDL',
 			'WebSVC::WSManager_SetWSDL'		
 		);
 		return call_user_funcX($_ENV['WS']['classname'].'::daemonOnParentInitializing', array(&$startinguserinfo, &$ctxuserinfo), true);
@@ -140,7 +149,7 @@ class WEBSvc
 	static public function fastCGIOnIdle()
 	{
 		// Process async. tasks.
-		$clb = &$_ENV['WS']['AsyncTask'];;
+		$clb = &$_ENV['WS']['AsyncTask'];
 		if(count($clb)>0)
 		{
 			$funcdef = array_shift($clb);
@@ -151,7 +160,7 @@ class WEBSvc
 			call_user_funcX($function, $params);	
 			unset($_SERVER);
 		}
-		return call_user_funcX($_ENV['WS']['classname'].'::webSvcOnIdle', array(), $timems);
+		return call_user_funcX($_ENV['WS']['classname'].'::fastCGIOnIdle', array(), $timems);
 	}
 	
 	static public function childRun()
@@ -177,10 +186,10 @@ class WEBSvc
 		WS_Manager::Process(URLRootX().$_SERVER['PHP_SELF'], $Acl,  $compatlevel);		
 	}
 	
-	static public function childOnBackgroundRun(&$quit, $initialfork)
+	static public function childBkgOnRun(&$quit, $initialfork)
 	{
 		declare(ticks=1);
-		return call_user_funcX($_ENV['WS']['classname'].'::childOnBackgroundRun', array(&$quit, $initialfork), 250);
+		return call_user_funcX($_ENV['WS']['classname'].'::childBkgOnRun', array(&$quit, $initialfork), 1000);
 	}
 	
 	static public function init()
@@ -188,30 +197,25 @@ class WEBSvc
 		FastCGI::init();				
 	}
 	
-	static public function GenericCall($Req, $isAsync = false, $cparams = null, $CredentialArray = null)
+	static public function GenericCall($Req, $isAsync = false, $cparams = null, $Credential = '', $AclLevel = 0)
 	{
 		$starttime = microtime(true);
 		$Res = null;
 		try
 		{
 			if(!$isAsync)
+			{
 				$cparams = WS_Manager::callParams();
+			} 
 			$finfo = $cparams['_FunctionInfo'];
 			$Res = new $finfo['OutType'];
 			$Res -> RequestId = isset($Req -> RequestId) ? $Req -> RequestId : null;
 			$Validate=true;
-			$AclLevel=WS_Manager::$acllevel;
 			if(!$isAsync)
 			{
-				$CredentialArray = array();
-				$CredentialArray['AclLevel'] = WS_Manager::$acllevel;
-				$CredentialArray['Credential'] = $Req->Credential;			
-				$CredentialArray['UserIp'] = $_SERVER['UserIp'];			
-				$CredentialArray['IsPrivateIp'] = $_SERVER['IsPrivateIp'];
-				$CredentialArray['UserIpShortCountry'] = $_SERVER['UserIpShortCountry'];
-				$CredentialArray['UserIpLongCountry'] = $_SERVER['UserIpLongCountry'];
-				$Validate=call_user_funcX($_ENV['WS']['classname'].'::webSvcOnValidateCredential', array(false, &$AclLevel, $Req->Credential, &$CredentialArray), true);
-				$CredentialArray['AclLevel'] = $AclLevel;
+				$AclLevel=0;
+				$Credential = issetX($Req->Credential, issetX($cparams['credential'],''));
+				$Validate=call_user_funcX($_ENV['WS']['classname'].'::webSvcOnValidateCredential', array($Credential, &$AclLevel), true);
 			}
 			if (!$isAsync && (!$Validate || ($finfo['AclLevel']>$AclLevel)))
 			{
@@ -221,7 +225,7 @@ class WEBSvc
 			{
 				if(issetX($_ENV['WS']['validate_request'], true))
 				{
-					$Req->WS_Validate();
+					$Req->WS_Validate($AclLevel);
 				}
 				
 				if (!$isAsync && issetX($Req->Options->Async, false))  
@@ -262,7 +266,7 @@ class WEBSvc
 							$Res -> AsyncRequestId = strtoupper(md5(uniqid(rand(), true)));
 							$Req -> Options -> AsyncRequestId = $Res -> AsyncRequestId;
 							$_ENV['WS']['async_memcachedLB']->Set("ws.async::processing::".$Res -> AsyncRequestId, 'true', 0, 30*60);
-							ws_addAsyncTask("WebSVC::GenericCall", array($Req, true, $cparams, $CredentialArray['AclLevel'], $CredentialArray));
+							ws_addAsyncTask("WebSVC::GenericCall", array($Req, true, $cparams, $Credential, $AclLevel));
 						}					
 						$tmp = microtime(true) - $starttime;
 						$Res->Duration = (int)round($tmp * 1000); 
@@ -271,12 +275,12 @@ class WEBSvc
 					}
 				}
 				$Res -> Ack = 0;	
-				call_user_func($finfo['Function'], $finfo, $CredentialArray, $Req, $Res);
+				call_user_func($finfo['Function'], $Req, $Res, $finfo, $Credential, $AclLevel);
 				$tmp = microtime(true) - $starttime;
 				$Res->Duration = (int) round($tmp * 1000);
 				if(issetX($_ENV['WS']['validate_response'], true))
 				{
-					$Res->WS_Validate();
+					$Res->WS_Validate($AclLevel);
 				}
 			}
 		}

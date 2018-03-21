@@ -64,7 +64,7 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($FInfo, $CArray, $Req, $Res)
+function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
 {   
 
 	$Res->DateTime = gmdate("c"); // we return the Date
@@ -79,13 +79,13 @@ function WSGetTime($FInfo, $CArray, $Req, $Res)
 	{
 		$Res->UserInfo = new UserInfoBlockType;
 		$Res->UserInfo->Info = new UserInfoType;
-		$Res->UserInfo->Info->UserIP = $CArray['UserIp'];
+		$Res->UserInfo->Info->UserIP = $_SERVER['UserIp'];
 		if($lvl>=2)
-			$Res->UserInfo->Info->IsPrivate = $CArray['IsPrivateIp'];	
+			$Res->UserInfo->Info->IsPrivate = $_SERVER['IsPrivateIp'];	
 		if($lvl>=3)
 		{
-			$Res->UserInfo->Info->ShortCountryCode = $CArray['UserIpShortCountry'];
-			$Res->UserInfo->Info->LongCountryName = $CArray['UserIpLongCountry'];
+			$Res->UserInfo->Info->ShortCountryCode = $_SERVER['UserIpShortCountry'];
+			$Res->UserInfo->Info->LongCountryName = $_SERVER['UserIpLongCountry'];
 		}
 	}
 	

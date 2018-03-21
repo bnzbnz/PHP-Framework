@@ -571,7 +571,7 @@ class WS_Type
 		throw $Ex; 
 	}
 	
-	public function WS_Validate($Ex = null)
+	public function WS_Validate($AclLevel = 0, $Ex = null)
 	{
 		
 		if ($Ex != null) { $TEx = $Ex; } else { $TEx = new WS_Exception; } 
@@ -594,6 +594,11 @@ class WS_Type
 			if((isset($propinfo['required'])) && ($propinfo['required']==true) && (!isset($this->{$key})))
 				$TEx->addError( 101, $key, '', '' );
 
+			// Check AclLevel
+			if($AclLevel<issetX($propinfo['acllevel'],0))
+			{
+				$this->{$key}=null;
+			}
 			//object
 			elseif ($proptype == "object" && (isset($this->{$key})) )
 			{
@@ -602,7 +607,7 @@ class WS_Type
 					$TEx->addError( 108, $key, '', '' );		
 				}
 				else
-					$this->{$key}->WS_Validate($TEx);
+					$this->{$key}->WS_Validate($AclLevel, $TEx);
 			}
 			//enum
 			elseif (($proptype == "enum") && (isset($this->{$key})))
@@ -767,6 +772,7 @@ class WS_Manager
 	public static $url				= "";
 	public static $SOAPTypes 		= null;
 	public static $getwsdlcallback	= null;
+	public static $existwsdlcallback= null;
 	public static $setwsdlcallback	= null;
 	public static $soapclassmap		= null;
 		
@@ -1008,32 +1014,28 @@ class WS_Manager
    	try
 		{
 		self::_getCallParams();
-		if (isset(self::$ReqParam['acllevel']))
-			if (self::$ReqParam['acllevel'] < self::$acllevel) { self::$acllevel = self::$ReqParam['acllevel']; }	 
 		if ( isset(self::$ReqParam['_FunctionName']) && (self::$ReqParam['_FunctionName']=="WSDL") )
-		{
-			self::$credential='';
-			if (isset(self::$ReqParam['credential']))
-				{ self::$credential = self::$ReqParam['credential']; }	
-			$credentialarray = array();
-			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredential', array(true, &self::$acllevel, self::$credential, &$credentialarray), true))
+		{	
+			self::$acllevel = 0;
+			self::$credential = issetX(self::$ReqParam['credential'], '');
+			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredential', array(self::$credential, &self::$acllevel), true))
 				return false;
-			$key  = "wsdl:".self::$url.":".self::$classname.":".self::$acllevel.":".self::$namespace;
+			$key = "wsdl:".self::$url.":".self::$classname.":".self::$acllevel.":".self::$namespace;
 			if( !call_user_funcX(self::$getwsdlcallback, array($key), false) )
 			{	
 					$wsdlgen = new WS_WSDLGenerator(
 						self::$classname, 
 						self::$WSDef['functions'],
 						self::$WSDef['props'],
-						self::$WSDef['enums'],
-						self::$url.'?acllevel='.self::$acllevel, 
+						self::$WSDef['enums'], 
+						self::$url, 
 						self::$namespace,
 						self::$acllevel, 
 						self::$SOAPTypes
 					);
 					$wsdl = $wsdlgen->getWSDL();
 					$wsdlgen = null;
-					call_user_funcX(self::$setwsdlcallback, array($key, &$wsdl) );
+					call_user_funcX(self::$setwsdlcallback, array($key, &$wsdl, &$filename) );
 					if( !call_user_funcX(self::$getwsdlcallback, array($key), false) )
 					{
 						unset($_REQUEST['Response']['Headers']['Pragma']);
@@ -1081,11 +1083,33 @@ class WS_Manager
 			$req = self::PHPToTypedObject($_REQUEST['Body'], new self::$ReqParam['_FunctionInfo']['InType']);
 		} elseif ((self::$ReqParam['_in'] == "SOAP") && (($compat & WS_SOAP) == WS_SOAP)) 
 		{
-			// SOAP  			
-			$server = new SoapServer(
-				self::$url."?wsdl&acllevel=".self::$acllevel
-				, array('classmap' => self::$soapclassmap, 'encoding'=>'UTF-8', 'cache_wsdl' => WSDL_CACHE_MEMORY)
-			);
+			// SOAP RequestType
+			self::$acllevel = 0;
+			$Start = 11 + strpos($_REQUEST['Body'], 'Credential>');
+			$Len = strpos($_REQUEST['Body'], '</', $Start) - $Start;
+			if($Start==11) { $Start=0; $Len=0;}	
+			self::$credential = trim(substr($_REQUEST['Body'], $Start, $Len));
+			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredential', array(self::$credential, &self::$acllevel), true))
+				return false;
+			// Soap
+			$key = "wsdl:".self::$url.":".self::$classname.":".self::$acllevel.":".self::$namespace;
+			if(!call_user_funcX(self::$existwsdlcallback, array($key, &$filename)))
+			{
+				$wsdlgen = new WS_WSDLGenerator(
+						self::$classname, 
+						self::$WSDef['functions'],
+						self::$WSDef['props'],
+						self::$WSDef['enums'], 
+						self::$url, 
+						self::$namespace,
+						self::$acllevel, 
+						self::$SOAPTypes
+					);
+				$wsdl = $wsdlgen->getWSDL();
+				$wsdlgen = null;
+				call_user_funcX(self::$setwsdlcallback, array($key, &$wsdl, &$filename) );
+			}
+			$server = new SoapServer($filename, array('classmap' => self::$soapclassmap, 'encoding'=>'UTF-8', 'cache_wsdl' => WSDL_CACHE_MEMORY));			
 			$server->setClass(self::$classname);             
  			$_REQUEST['Response']['Headers']['Content-Type']='text/xml;charset=utf-8';
 			$server->handle($_REQUEST['Body']);
@@ -1144,7 +1168,6 @@ class WS_Manager
 	} 
 				
 	} 
-	
   public static function registerEnum($type) 
   { 
   	self::$WSDef['enums'][$type] = call_user_func(array($type, 'WS_EnumValues'), $type); 
@@ -1157,16 +1180,17 @@ class WS_Manager
 		self::pProcess($compat);
 	}
 	
-	public static function Init($classname, $namespace, $getwsdlcallback=null, $setwsdlcallback=null)
+	public static function Init($classname, $namespace, $getwsdlcallback=null, $existwsdlcallback=null, $setwsdlcallback=null)
 	{
 	  
 		ini_set("soap.wsdl_cache_enabled", true);
 		
 		self::$acllevel				= 0;
-		self::$credential			= 0;
+		self::$credential			= '';
 		self::$classname  			= $classname;
 		self::$namespace 			= $namespace;
 		self::$getwsdlcallback		= $getwsdlcallback;
+		self::$existwsdlcallback	= $existwsdlcallback;
 		self::$setwsdlcallback		= $setwsdlcallback;
 		self::$WSDef				= array();
 		self::$WSDef['props'] 		= array();

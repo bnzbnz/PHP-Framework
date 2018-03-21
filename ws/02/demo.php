@@ -23,7 +23,7 @@ class WebSVCDemo extends WS_MainClass
 	// Enable / Disable Logging here;
 	// see: tail -f /var/log/syslog
 	public static $EnableLogging = true; 
-	public static $LogLoopingMsg = false; 
+	public static $LogLoopingMsg = true; 
 
 	//////////////////////////////////////////
 	//										//
@@ -70,7 +70,7 @@ class WebSVCDemo extends WS_MainClass
 		
 	}
 
-	static public function childOnBackgroundRun(&$quit, $initialfork)
+	static public function childBkgOnRun(&$quit, $initialfork)
 	{	
 		// A unique background child is running here,
 		// Useful to manage messages queues.
@@ -101,7 +101,7 @@ class WebSVCDemo extends WS_MainClass
 
 		if (self::$EnableLogging && self::$LogLoopingMsg)
 		{
-			syslogX('childOnBackgroundRun');
+			syslogX('childBkgOnRun');
 		}
 		// DO SOMETHING HERE
 		
@@ -149,13 +149,13 @@ class WebSVCDemo extends WS_MainClass
 		}
 	}
 	
-	static public function webSvcOnIdle()
+	static public function fastCGIOnIdle()
 	{
 		// Called when the FastCGI socket has timeout,
 		// Giving us a chance to do something.
 		if (self::$EnableLogging && self::$LogLoopingMsg)
 		{
-			syslogX('webSvcOnIdle...');
+			syslogX('fastCGIOnIdle...');
 		}
 	}	
 					
@@ -172,34 +172,18 @@ class WebSVCDemo extends WS_MainClass
 		}
 		$compatlevel = WS_ALL;  // Default value (255)
 	}	
-	static public function webSvcOnValidateCredential($iswsdl, &$acllevel, $credential, &$credentialarray)
+	static public function webSvcOnValidateCredential($Credential, &$AclLevel)
 	{
-		// The default value of acllevel depends of :
-		// The value passed as parameter (in case of wsdl request),
-		// 300 if it comes from the internal network,
-		// 0 : in all other cases.
 		// Check and modify if necessary the aclevel against the credential
-		// Also fill the $credentialarray array
-		// Predefined :
-		// $credentialarray['AclLevel'] The current AclLevel (Will be updated on this function's exit)
-		// $credentialarray['Credential'] = The current Credential
-		// $credentialarray['UserIp'] = The user IP
-		// $credentialArray['IsPrivateIP'] = The request comes from the internal network
-		// $credentialArray['UserIpShortCountry'] = 2 letters IP Country code
-		// $credentialArray['UserIpLongCountry'] = Full IP Country name
-		// Anyway you better check the current acl, the credential, and other parameters like $credentialArray['Internal']
-		// to assign a value to acllevel.
 		
 		if (self::$EnableLogging)
 		{
 			syslogX('webSvcOnValidateCredential :');
-			syslogX('iswsdl : '.$iswsdl);
-			syslogX('acllevel : '.$acllevel);
-			syslogX('credential : '.$credential);
-			syslogX('credentialarray : '.serialize($credentialarray));
+			syslogX('Credential : '.$Credential);
+			syslogX('AclLevel : '.$AclLevel);
 		}
 
-		return true;
+		return true; // Returning False will break the request
 	}
 		
 	//////////////////////////////////////////////
@@ -257,13 +241,15 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($FInfo, $CredentialArray, $Req, $Res)
+function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
 {   
-	syslogX('FInfo :');
+	syslogX('Function FInfo :');
 	syslogX(serializeX($FInfo));
-	syslogX('CredentialArray :');
-	syslogX(serializeX($CredentialArray));
-	syslogX('Req :');
+	syslogX('Function Credential :');
+	syslogX(serializeX($Credential));
+	syslogX('Function AclLevel :');
+	syslogX(serializeX($AclLevel));	
+	syslogX('Function Req :');
 	syslogX(serializeX($Req));
 
     // a very simple web service...

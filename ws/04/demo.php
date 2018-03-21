@@ -71,7 +71,7 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($FInfo, $CArray, $Req, $Res)
+function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
 {   
 
     // a very simple web service...

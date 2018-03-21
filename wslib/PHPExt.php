@@ -22,6 +22,8 @@ function syslogerrorhandlerX($errno, $errstr, $errfile, $errline) { syslogX($err
 
 function serializeX(&$o) { return preg_replace('/s:\d*:"\w*\";N;/', '', serialize($o)); }
 
+function object2arrayX($object) { return @json_decode(@json_encode($object),1); } 	
+
 function set_error_handlerX($errlevel=E_ALL, $handlername='syslogerrorhandlerX')
 {
 	set_error_handler($handlername);
