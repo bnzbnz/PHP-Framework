@@ -768,7 +768,7 @@ class WS_Manager
 	public static $classname		= "";
 	public static $namespace 		= "";
 	public static $acllevel	 		= 0;
-	public static $credential		= 0;
+	public static $credentials		= 0;
 	public static $url				= "";
 	public static $SOAPTypes 		= null;
 	public static $getwsdlcallback	= null;
@@ -1017,8 +1017,8 @@ class WS_Manager
 		if ( isset(self::$ReqParam['_FunctionName']) && (self::$ReqParam['_FunctionName']=="WSDL") )
 		{	
 			self::$acllevel = 0;
-			self::$credential = issetX(self::$ReqParam['credential'], '');
-			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredential', array(self::$credential, &self::$acllevel), true))
+			self::$credentials = issetX(self::$ReqParam['credentials'], '');
+			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredentials', array(self::$credentials, &self::$acllevel), true))
 				return false;
 			$key = "wsdl:".self::$url.":".self::$classname.":".self::$acllevel.":".self::$namespace;
 			if( !call_user_funcX(self::$getwsdlcallback, array($key), false) )
@@ -1085,11 +1085,11 @@ class WS_Manager
 		{
 			// SOAP RequestType
 			self::$acllevel = 0;
-			$Start = 11 + strpos($_REQUEST['Body'], 'Credential>');
+			$Start = 11 + strpos($_REQUEST['Body'], 'redentials>');
 			$Len = strpos($_REQUEST['Body'], '</', $Start) - $Start;
 			if($Start==11) { $Start=0; $Len=0;}	
-			self::$credential = trim(substr($_REQUEST['Body'], $Start, $Len));
-			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredential', array(self::$credential, &self::$acllevel), true))
+			self::$credentials = trim(substr($_REQUEST['Body'], $Start, $Len));
+			if (!call_user_funcX(self::$classname.'::webSvcOnValidateCredentials', array(self::$credentials, &self::$acllevel), true))
 				return false;
 			// Soap
 			$key = "wsdl:".self::$url.":".self::$classname.":".self::$acllevel.":".self::$namespace;
@@ -1186,7 +1186,7 @@ class WS_Manager
 		ini_set("soap.wsdl_cache_enabled", true);
 		
 		self::$acllevel				= 0;
-		self::$credential			= '';
+		self::$credentials			= '';
 		self::$classname  			= $classname;
 		self::$namespace 			= $namespace;
 		self::$getwsdlcallback		= $getwsdlcallback;

@@ -171,15 +171,16 @@ class WebSVCDemo extends WS_MainClass
 			syslogX($compatlevel);
 		}
 		$compatlevel = WS_ALL;  // Default value (255)
-	}	
-	static public function webSvcOnValidateCredential($Credential, &$AclLevel)
+	}
+	
+	static public function webSvcOnValidateCredentials($Credentials, &$AclLevel)
 	{
 		// Check and modify if necessary the aclevel against the credential
 		
 		if (self::$EnableLogging)
 		{
 			syslogX('webSvcOnValidateCredential :');
-			syslogX('Credential : '.$Credential);
+			syslogX('Credentials : '.$Credentials);
 			syslogX('AclLevel : '.$AclLevel);
 		}
 
@@ -241,12 +242,12 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
+function WSGetTime($Req, $Res, $FInfo, $AclLevel)
 {   
 	syslogX('Function FInfo :');
 	syslogX(serializeX($FInfo));
-	syslogX('Function Credential :');
-	syslogX(serializeX($Credential));
+	syslogX('Function Credentials :');
+	syslogX(serializeX($Req->Credentials));
 	syslogX('Function AclLevel :');
 	syslogX(serializeX($AclLevel));	
 	syslogX('Function Req :');

@@ -197,7 +197,7 @@ class WEBSvc
 		FastCGI::init();				
 	}
 	
-	static public function GenericCall($Req, $isAsync = false, $cparams = null, $Credential = '', $AclLevel = 0)
+	static public function GenericCall($Req, $isAsync = false, $cparams = null, $Credentials = '', $AclLevel = 0)
 	{
 		$starttime = microtime(true);
 		$Res = null;
@@ -214,8 +214,8 @@ class WEBSvc
 			if(!$isAsync)
 			{
 				$AclLevel=0;
-				$Credential = issetX($Req->Credential, issetX($cparams['credential'],''));
-				$Validate=call_user_funcX($_ENV['WS']['classname'].'::webSvcOnValidateCredential', array($Credential, &$AclLevel), true);
+				$Credentials = issetX($Req->Credentials, issetX($cparams['credentials'],''));
+				$Validate=call_user_funcX($_ENV['WS']['classname'].'::webSvcOnValidateCredentials', array($Credentials, &$AclLevel), true);
 			}
 			if (!$isAsync && (!$Validate || ($finfo['AclLevel']>$AclLevel)))
 			{
@@ -266,7 +266,7 @@ class WEBSvc
 							$Res -> AsyncRequestId = strtoupper(md5(uniqid(rand(), true)));
 							$Req -> Options -> AsyncRequestId = $Res -> AsyncRequestId;
 							$_ENV['WS']['async_memcachedLB']->Set("ws.async::processing::".$Res -> AsyncRequestId, 'true', 0, 30*60);
-							ws_addAsyncTask("WebSVC::GenericCall", array($Req, true, $cparams, $Credential, $AclLevel));
+							ws_addAsyncTask("WebSVC::GenericCall", array($Req, true, $cparams, $Credentials, $AclLevel));
 						}					
 						$tmp = microtime(true) - $starttime;
 						$Res->Duration = (int)round($tmp * 1000); 
@@ -275,7 +275,7 @@ class WEBSvc
 					}
 				}
 				$Res -> Ack = 0;	
-				call_user_func($finfo['Function'], $Req, $Res, $finfo, $Credential, $AclLevel);
+				call_user_func($finfo['Function'], $Req, $Res, $finfo, $AclLevel);
 				$tmp = microtime(true) - $starttime;
 				$Res->Duration = (int) round($tmp * 1000);
 				if(issetX($_ENV['WS']['validate_response'], true))

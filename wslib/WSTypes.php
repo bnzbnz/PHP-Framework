@@ -63,7 +63,7 @@ class RequestType extends WS_Type
 		return  
 			array
 			(
-				"Credential"		 	=> array
+				"Credentials"		 	=> array
 				(
 					"type"				=> "string",
 					"acllevel"			=> 0

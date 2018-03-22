@@ -7,26 +7,26 @@
 // http://MYIP/ws/?wsdl :
 // Public Credential
 // Only the function GetTime will appear
-// Service Provider Credential
-// http://MYIP/ws/?wsdl&Credential=1234
+// Service Provider Credentials
+// http://MYIP/ws/?wsdl&Credentials=1234
 // Both GetTime & GetTimeSP will be shown
-// Private (root) Credential
-// http://MYIP/ws/?wsdl&Credential=5678
+// Private (root) Credentials
+// http://MYIP/ws/?wsdl&Credentials=5678
 // All GetTime functions are present (GetTime, GetTimeSP, GetTimePV)
 // Making a call like:
-// http://MYIP/ws/?GetTimePV&Credential=1234
-// (Calling a private function with Service Provider Credential)
-// will result in an error : Invalid Credential
+// http://MYIP/ws/?GetTimePV&Credentials=1234
+// (Calling a private function with Service Provider Credentials)
+// will result in an error : Invalid Credentials
 // Working as follow :
 // http://MYIP/ws/?GetTime 		// Public : OK
 // http://MYIP/ws/?GetTimeSP 	// Error
 // http://MYIP/ws/?GetTimePV 	// Error
-// http://MYIP/ws/?GetTime&Credential=1234 		// Service Provider : OK
-// http://MYIP/ws/?GetTimeSP&Credential=1234 	// Service Provider : OK
-// http://MYIP/ws/?GetTimePV&Credential=1234 	// Error
-// http://MYIP/ws/?GetTime&Credential=5678 		// Private : OK
-// http://MYIP/ws/?GetTimeSP&Credential=5678 	// Private : OK
-// http://MYIP/ws/?GetTimePV&Credential=5678 	// Private : OK
+// http://MYIP/ws/?GetTime&Credentials=1234 		// Service Provider : OK
+// http://MYIP/ws/?GetTimeSP&Credentials=1234 	// Service Provider : OK
+// http://MYIP/ws/?GetTimePV&Credentials=1234 	// Error
+// http://MYIP/ws/?GetTime&Credentials=5678 		// Private : OK
+// http://MYIP/ws/?GetTimeSP&Credentials=5678 	// Private : OK
+// http://MYIP/ws/?GetTimePV&Credentials=5678 	// Private : OK
 
 
 date_default_timezone_set("UTC");
@@ -40,19 +40,19 @@ require_once(WS_ABSWSPATH.'demoTypes.php');
 class WebSVCDemo extends WS_MainClass
 {
 	
-	static public function webSvcOnValidateCredential($Credential, &$AclLevel)
+	static public function webSvcOnValidateCredentials($Credentials, &$AclLevel)
 	{
 		// Usually the AclLevel will be set after checking the Credential in a DB
 		
 		$AclLevel = 0;
 		$_SERVER['CallType'] = 'Public';
 		
-		if($Credential=='1234') // A Service Provider
+		if($Credentials=='1234') // A Service Provider
 		{
 			$AclLevel = 100;
 			$_SERVER['CallType'] = 'Provider';
 		}
-		elseif($Credential=='5678') // Private
+		elseif($Credentials=='5678') // Private
 		{
 			$AclLevel = 300;	
 			$_SERVER['CallType'] = 'Private';
@@ -137,10 +137,10 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
+function WSGetTime($Req, $Res, $FInfo, $AclLevel)
 {   
 	syslogX('Function FInfo : '.serializeX($FInfo));
-	syslogX('Function Credential : '.$Credential);
+	syslogX('Function Credentials : '.$Req->Credentials);
 	syslogX('Function AclLevel : '.$AclLevel);
 	$Res->DateTime 		= gmdate("c"); // we return the Date
 	$Res->DateTimeSP 	= gmdate("c"); // we return the Date as SP

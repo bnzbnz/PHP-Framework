@@ -72,7 +72,7 @@ class WebSVCDemo extends WS_MainClass
 //										//
 //////////////////////////////////////////
 
-function WSGetTime($Req, $Res, $FInfo, $Credential, $AclLevel)
+function WSGetTime($Req, $Res, $FInfo, $AclLevel)
 {   
 
 	// How to handle arrays with page infos:
